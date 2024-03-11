@@ -1,0 +1,1 @@
+ApiTimer.Models.HostBuilder.CreateHostBuilder(args).Build().Run();

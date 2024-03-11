@@ -1,0 +1,200 @@
+﻿
+@import url(https://db.onlinewebfonts.com/c/84cb021d5f9af287ffff84b61beef6dc?family=clockicons);
+
+@font-face {
+    font-family: "clockicons";
+    src: url("https://db.onlinewebfonts.com/t/84cb021d5f9af287ffff84b61beef6dc.eot");
+    src: url("https://db.onlinewebfonts.com/t/84cb021d5f9af287ffff84b61beef6dc.eot?#iefix")format("embedded-opentype"), url("https://db.onlinewebfonts.com/t/84cb021d5f9af287ffff84b61beef6dc.woff2")format("woff2"), url("https://db.onlinewebfonts.com/t/84cb021d5f9af287ffff84b61beef6dc.woff")format("woff"), url("https://db.onlinewebfonts.com/t/84cb021d5f9af287ffff84b61beef6dc.ttf")format("truetype"), url("https://db.onlinewebfonts.com/t/84cb021d5f9af287ffff84b61beef6dc.svg#clockicons")format("svg");
+}
+
+.am-wrapper {
+    min-height: 100%;
+    padding-top: 80px;
+}
+
+.am-top-header {
+    background-color: #3d3c3c;
+    border: 0;
+    margin-bottom: 0;
+}
+
+.am-fixed-sidebar .am-left-sidebar {
+    margin-top: 80px;
+    padding-bottom: 80px;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 1031;
+}
+
+.am-left-sidebar {
+    background-color: #3d3c3c;
+    width: 100px;
+    height: 100%;
+    left: 0;
+    position: absolute;
+}
+
+.dark-theme #pnl-laps, .dark-theme #pnl-main, .dark-theme .am-content, .dark-theme .am-wrapper, .dark-theme .panel-ne0n, .dark-theme .panel-neon, .dark-theme body, .dark-theme html {
+    background-color: #000;
+    color: #eee;
+}
+
+.am-content {
+    position: relative;
+    left: 0;
+    margin-left: 100px;
+    min-height: 100%;
+}
+
+.main-content {
+    padding-left: 35px;
+    padding-right: 35px;
+    padding-top: 35px;
+}
+
+.colored {
+    color: #FF9500 !important;
+}
+
+.font-digit {
+    font-family: clockicons,sans-serif;
+}
+
+.text-nowrap {
+    white-space: nowrap;
+}
+
+.navbar-fixed-top {
+    top: 0;
+    border-width: 0 0 1px;
+}
+
+.navbar-fixed-bottom, .navbar-fixed-top {
+    position: fixed;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+}
+
+.navbar-header {
+    float: left
+}
+
+.panel {
+    background-color: #fff;
+    margin-bottom: 30px;
+    box-shadow: none;
+    border-width: 0;
+}
+
+.panel-default {
+    border-color: #ddd;
+}
+
+.panel {
+    margin-bottom: 22px;
+    background-color: #fff;
+    border: 1px solid transparent;
+    border-radius: 0;
+    -webkit-box-shadow: 0 1px 1px rgba(0,0,0,.05);
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.dark-theme .panel-default > .panel-heading {
+    border-color: #777;
+}
+
+.dark-theme .panel-heading {
+    color: #eee;
+}
+
+.panel-default > .panel-heading {
+    line-height: 1.1;
+}
+
+.panel-default > .panel-heading {
+    color: #333;
+    background-color: transparent;
+    border-color: #ddd;
+}
+
+.panel-heading {
+    font-size: 18px;
+    font-weight: 300;
+    padding-left: 0;
+    padding-right: 0;
+    margin: 0 20px;
+}
+
+.panel-heading {
+    padding: 20px 20px 15px;
+    border-bottom: 1px solid transparent;
+    border-top-right-radius: -1;
+    border-top-left-radius: -1;
+}
+
+.panel-body {
+    padding: 15px 20px 20px;
+}
+
+.table {
+    background-color: #111111;
+    color: #fff;
+}
+
+th {
+    border: 0px;
+}
+
+tr {
+    border: 0px;
+}
+
+td {
+    border: 0px;
+}
+.google-btn {
+    width: 184px;
+    height: 42px;
+    background-color: #4285f4;
+    border-radius: 2px;
+    box-shadow: 0 3px 4px 0 rgba(0,0,0,.25);
+}
+
+.google-icon-wrapper {
+    position: absolute;
+    margin-top: 1px;
+    margin-left: 1px;
+    width: 40px;
+    height: 40px;
+    border-radius: 2px;
+    background-color: #fff;
+}
+
+.google-icon {
+    position: absolute;
+    margin-top: 11px;
+    margin-left: 11px;
+    width: 18px;
+    height: 18px;
+}
+
+.btn-text {
+    float: right;
+    margin: 11px 11px 0 0;
+    color: #fff;
+    font-size: 14px;
+    letter-spacing: 0.2px;
+    font-family: "Roboto";
+}
+
+&:hover {
+    box-shadow: 0 0 6px #4285f4;
+}
+
+&:active {
+    background: #1669F2;
+}
+
+@import url(https://fonts.googleapis.com/css?family=Roboto:500);

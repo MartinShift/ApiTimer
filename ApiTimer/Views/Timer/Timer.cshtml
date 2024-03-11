@@ -1,0 +1,769 @@
+﻿@*
+
+*@
+@{
+    Layout = "_Layout";
+}
+@section styles{
+    <style>
+        .hidden {
+            display: none;
+        }
+    </style>
+}
+@using ApiTimer.DbModels;
+@section scripts{
+    <script>
+        function logout() {
+            fetch('api/Account/Logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+
+                })
+                .then(data => {
+                    fetch("Content/logout-navbar", {
+                        method: "get",
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(r => r.text()).then(html => { $("#navbar").html(html); toggleMain(); getTimers(); });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+        const loginDiv = document.getElementById('login-page');
+        const registerDiv = document.getElementById('register-page');
+        const mainDiv = document.getElementById('main-page');
+        function toggleLogin() {
+
+            loginDiv.classList.remove('hidden');
+            registerDiv.classList.add('hidden');
+            mainDiv.classList.add('hidden');
+            console.log("toggle login");
+        }
+        function toggleRegister() {
+            loginDiv.classList.add('hidden');
+            registerDiv.classList.remove('hidden');
+            mainDiv.classList.add('hidden');
+        }
+        function toggleMain() {
+            loginDiv.classList.add('hidden');
+            registerDiv.classList.add('hidden');
+            mainDiv.classList.remove('hidden');
+        }
+
+        var IsTimerActive = false;
+        var timerInterval;
+        var overallTime = 0;
+        function updateTimer(timeSpan) {
+            const lblTime = document.getElementById("lbl-time");
+            if (lblTime) {
+                lblTime.innerText = timeSpan;
+            }
+        }
+        function getTimer(id, isChange) {
+            fetch(`/api/Main/timer/${id}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error("Timer not found");
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        console.log(data);
+                        document.getElementById("time-title").textContent = data.title;
+                        if (data.sound != null) {
+                            document.getElementById("timerSound").src = "/" + data.sound.rootDirectory + "/" + data.sound.filename;
+                        }
+                        toggleButtons();
+
+                        overallTime = calculateTotalSeconds(data.timeSpan);
+                        var starttime = localStorage.getItem("timerTime");
+                        if (starttime == 0) {
+                            starttime = overallTime;
+                        }
+                        updateTimer(formatDuration(moment.duration(starttime, "seconds")));
+
+                        console.log(overallTime);
+                        if (isChange) {
+                            localStorage.setItem("currentId", id);
+                            stopTimer();
+                            resetTimer();
+                        }
+                    }
+                });
+        }
+
+        function getTimers() {
+            fetch(`/api/Main/timer`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error("Timer not found");
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        // Create a table element
+                        var table = document.createElement("table");
+                        table.classList.add("table");
+
+                        // Create the table body element
+                        var tbody = document.createElement("tbody");
+
+                        // Loop through the data and create table rows
+                        data.forEach(timer => {
+                            var row = document.createElement("tr");
+
+                            // Create the first cell with a link
+                            var cell1 = document.createElement("td");
+                            var link1 = document.createElement("a");
+                            link1.href = "#";
+                            link1.textContent = timer.title;
+                            link1.onclick = function () {
+                                getTimer(timer.id, true);
+                            };
+                            cell1.appendChild(link1);
+
+                            // Create the second cell with a link
+                            var cell2 = document.createElement("td");
+                            var link2 = document.createElement("a");
+                            link2.href = "#";
+                            link2.textContent = timer.timeSpan;
+                            link2.onclick = function () {
+                                getTimer(timer.id, true);
+                            };
+                            cell2.appendChild(link2);
+
+                            // Create the third cell with a link
+                            var cell3 = document.createElement("td");
+                            cell3.style.textAlign = "right";
+                            var removeLink = document.createElement("a");
+                            removeLink.href = "#";
+                            removeLink.textContent = "×";
+                            removeLink.onclick = function () {
+                                removeTimer(timer.id);
+                            };
+                            cell3.appendChild(removeLink);
+
+                            // Add cells to the row
+                            row.appendChild(cell1);
+                            row.appendChild(cell2);
+                            row.appendChild(cell3);
+
+                            // Add the row to the table body
+                            tbody.appendChild(row);
+                        });
+
+                        // Add the table body to the table
+                        table.appendChild(tbody);
+
+                        // Append the table to the timerTable div
+                        document.getElementById("timerTable").appendChild(table);
+                    }
+                }).catch(error => {
+                    console.log(error);
+                })
+        }
+
+        function loadTimerTime() {
+            const storedTime = localStorage.getItem("timerTime");
+            if (storedTime) {
+                return JSON.parse(storedTime);
+            }
+            return 0;
+        }
+        function calculateTotalSeconds(timeSpanString) {
+            console.log(timeSpanString);
+            const timeComponents = timeSpanString.split(':');
+
+            let totalSeconds = 0;
+
+            if (timeComponents.length === 3) {
+                // If the format is "hh:mm:ss"
+                totalSeconds = parseInt(timeComponents[0]) * 3600 + parseInt(timeComponents[1]) * 60 + parseInt(timeComponents[2]);
+            } else if (timeComponents.length === 4) {
+                // If the format is "dd.hh:mm:ss"
+                const daysHours = timeComponents[0].split('.');
+                totalSeconds = parseInt(daysHours[0]) * 24 * 3600 + parseInt(daysHours[1]) * 3600 + parseInt(timeComponents[1]) * 60 + parseInt(timeComponents[2]);
+            }
+
+            return totalSeconds;
+        }
+
+        function formatDuration(duration) {
+            return moment.utc(duration.as('milliseconds')).format('HH:mm:ss');
+        }
+
+        function removeTimer(id) {
+            fetch(`/api/Main/timer/{id}`, {
+                method: "Delete",
+            }).then(r => r.json())
+                .then(data => {
+                    location.reload();
+                });
+        }
+
+        function startTimer() {
+            IsTimerActive = true;
+            var startTime = moment.duration(loadTimerTime(), "seconds");
+
+            timerInterval = setInterval(function () {
+                if (startTime.asSeconds() <= 0) {
+                    IsTimerActive = false;
+                    clearInterval(timerInterval);
+                    timerEnded()
+
+                } else {
+                    startTime.subtract(1, "second");
+                    updateTimer(formatDuration(startTime));
+                    localStorage.setItem("timerTime", startTime.asSeconds());
+                    document.title = formatDuration(startTime);
+                }
+            }, 1000);
+
+            toggleButtons();
+        }
+
+        function timerEnded() {
+            toggleButtons();
+            var sound = document.getElementById("timerSound");
+            $("#timerEndedModal").modal("show");
+            sound.play();
+
+        }
+
+        function stopTimer() {
+            IsTimerActive = false;
+            clearInterval(timerInterval);
+            toggleButtons();
+        }
+
+        function stopSound() {
+            var sound = document.getElementById("timerSound");
+            sound.pause();
+
+
+        }
+
+        function resetTimer() {
+            if (IsTimerActive) {
+                stopTimer();
+            }
+            localStorage.setItem("timerTime", overallTime);
+            updateTimer(formatDuration(moment.duration(overallTime, "seconds")));
+        }
+
+        function toggleButtons() {
+            const btnStart = document.getElementById("btn-resume");
+            const btnStop = document.getElementById("btn-pause");
+
+            if (IsTimerActive) {
+                btnStart.style.display = "none";
+                btnStop.style.display = "inline-block";
+            } else {
+                btnStart.style.display = "inline-block";
+                btnStop.style.display = "none";
+            }
+        }
+
+        function setTimerSound(id) {
+            var selectedFile = document.getElementById("soundFileInput").files[0];
+            var formData = new FormData();
+            formData.append("File", selectedFile);
+            fetch(`/api/Main/timer/{id}/sound`, {
+                method: "post",
+                body: formData
+            }).then(r => r.json())
+                .then(data => {
+                    location.reload();
+                });
+        }
+
+        document.getElementById("btn-resume").addEventListener("click", startTimer);
+        document.getElementById("btn-pause").addEventListener("click", stopTimer);
+        document.getElementById("btn-reset").addEventListener("click", resetTimer);
+
+        document.getElementById("btn-submit").addEventListener("click", function () {
+            var days = parseInt(document.getElementById("editDays").value) || 0;
+            var hours = parseInt(document.getElementById("editHours").value) || 0;
+            var minutes = parseInt(document.getElementById("editMinutes").value) || 0;
+            var secondsInput = parseInt(document.getElementById("editSeconds").value) || 0;
+            var dateTimeInput = $('#datetime').val();
+            var selectedDate = moment(dateTimeInput, 'MM/DD/YYYY h:mm A').toDate();
+            console.log(dateTimeInput);
+            console.log(selectedDate);
+
+            if (!isNaN(selectedDate) && selectedDate < new Date()) {
+                return;
+            }
+            var title = document.getElementById("editTitle").value;
+            var totalSeconds = 0;
+            fetch("/api/Main/timer", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    days: days,
+                    hours: hours,
+                    minutes: minutes,
+                    seconds: secondsInput,
+                    title: title,
+                    date: selectedDate
+                })
+            }).then(response => {
+                console.log(response);
+                return response.json()
+            })
+                .then(data => {
+                    console.log(data);
+                    localStorage.setItem("currentId", data.id);
+                    setTimerSound(data.id);
+                    localStorage.setItem("startTime", data.time);
+                    localStorage.setItem("timerTime", data.time);
+
+                });
+
+        });
+
+        document.getElementById("btn-edit").addEventListener("click", function () {
+            document.getElementById("editDays").value = "";
+            document.getElementById("editHours").value = "";
+            document.getElementById("editMinutes").value = "";
+            document.getElementById("editSeconds").value = "";
+            $("#editModal").modal("show");
+        });
+        document.getElementById("btn-close-result").addEventListener("click", function () {
+            $("#timerEndedModal").modal("hide");
+
+        });
+        document.getElementById("btn-reset-timer").addEventListener("click", function () {
+            $("#timerEndedModal").modal("hide");
+            resetTimer();
+            startTimer();
+        });
+        $('#timerEndedModal').on('hidden.bs.modal', function () {
+            stopSound();
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            var currentId = localStorage.getItem("currentId");
+
+            if (currentId) {
+                getTimer(currentId, false);
+            } else {
+                console.error("currentId not found in local storage");
+            }
+            getTimers();
+            $('#datetime').datetimepicker();
+            $('input[name="datePickerRadio"]').on('change', function () {
+                if ($('#datePicker').prop('checked')) {
+                    $('#datePickerInput').show();
+                    $('#days-selector').hide();
+                    $('#hours-selector').hide();
+                    $('#minutes-selector').hide();
+                    $('#seconds-selector').hide();
+                } else {
+                    $('#datePickerInput').hide();
+                    $('#days-selector').show();
+                    $('#hours-selector').show();
+                    $('#minutes-selector').show();
+                    $('#seconds-selector').show();
+                }
+            });
+
+        });
+        $("#login-button").click(function () {
+            const loginOrEmail = $("#LoginOrEmail").val();
+            const password = $("#Password").val();
+            var currentId = localStorage.getItem("currentId");
+            if (currentId) {
+                getTimer(currentId, false);
+            } else {
+                console.error("currentId not found in local storage");
+            }
+            if (!loginOrEmail || !password) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    text: 'Please fill in all required fields correctly.',
+                });
+                return;
+            }
+
+            const loginData = {
+                LoginOrEmail: loginOrEmail,
+                Password: password
+            };
+            fetch('/api/Account/Login', {
+                method: 'POST',
+                body: JSON.stringify(loginData),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+
+                    localStorage.setItem('TOKEN', data.token)
+
+                    console.log("fdsfdsfsfs")
+                    fetch("Content/auth-navbar", {
+                        method: "get",
+                        headers: {
+                            'Authorization': `Bearer ${data.token}`
+                        }
+                    }).then(r => r.text()).then(html => { $("#navbar").html(html); toggleMain(); getTimers(); })
+                });
+        });
+        $("#register-button").click(function () {
+            // Gather data from the form
+            const login = $("#Login").val();
+            const email = $("#Email").val();
+            const password = $("#Register-Password").val();
+            const confirmPassword = $("#ConfirmPassword").val();
+
+            // Perform client-side validation if needed
+            if (!login || !email || !password || password !== confirmPassword) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    text: 'Please fill in all required fields correctly.',
+                });
+                return;
+            }
+
+            const registrationData = {
+                Login: login,
+                Email: email,
+                Password: password,
+                ConfirmPassword: confirmPassword
+            };
+            console.log(registrationData)
+
+
+            fetch('/api/Account/Register', {
+                method: 'POST',
+                body: JSON.stringify(registrationData),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    localStorage.setItem(json.token)
+                    toggleMain();
+                });
+        });
+
+    </script>
+
+
+
+
+}
+<!DOCTYPE html>
+<html class="dark-theme">
+<head>
+    <meta charset="utf-8">
+    <link href="https://db.onlinewebfonts.com/c/84cb021d5f9af287ffff84b61beef6dc?family=clockicons" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .divBack {
+            background: black;
+            height: 907px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .navbarbg {
+            background-color: #3d3c3c;
+        }
+
+        .divTimer {
+            font-size: 150px;
+            color: green;
+            font-weight: bold;
+        }
+
+        .divTitle {
+            font-size: 50px;
+        }
+
+        .container {
+            display: inline-block;
+        }
+
+        .divModalGrey {
+            background: grey;
+            width: 300px;
+            height: 550px;
+            color: white;
+            border: 10px solid black;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+            .divModalGrey.show {
+                display: block;
+            }
+
+        .result {
+            height: 268px;
+            width: 350px;
+            background: grey;
+            border: 5px solid black;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .resultTitel {
+            height: 50px;
+            width: 340px;
+            text-align: center;
+            background: #484848;
+            color: white;
+            font-size: 30px;
+        }
+
+        .divImg {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .imgRedoctor {
+            height: 50px;
+            width: 50px;
+            margin-bottom: 10px; /* Add some space between the image and the text */
+        }
+
+        .table {
+            margin-left: 380px;
+            width: 300px;
+        }
+
+        .hidden {
+            display: none
+        }
+    </style>
+</head>
+<body>
+    
+    <nav class="navbar navbar-expand-lg navbar-light navbarbg" style="height:80px" id="navbar">
+        @if(!User.Identity.IsAuthenticated)
+        {
+        @await Html.PartialAsync("~/Views/Content/NavBar.cshtml");
+        }
+        @if (User.Identity.IsAuthenticated)
+        {
+            @await Html.PartialAsync("~/Views/Content/NavBarAuthorize.cshtml")
+            ;
+        }
+    </nav>
+    <div id="main-page" class="container mt-5">
+        <div class="am-wrapper am-fixed-sidebar">
+            <div class="am-left-sidebar"></div>
+            <div class="am-content">
+                <div class="main-content">
+                    <div class="row" style="text-align:center">
+                        <div class="col-md-12 text-light" id="col-main" data-timer-date="" data-timer-time="" style="">
+                            <div class="panel panel-default" id="pnl-main" style="display: flex; justify-content: center; align-items: center; height: 506px;">
+                                <div id="pnl-time" style="position: relative;">
+
+                                    <span id="lbl-time" class="colored digit text-nowrap font-digit" style="font-size: 128px;">1:52:21</span>
+
+                                </div>
+                            </div>
+                            <h1 id="time-title" class="colored main-title text-center" style="position: absolute; width: 1140px; top: 168px;"></h1>
+                            <div id="lbl-date" class="colored  text-center" style="display: none; position: absolute; font-size: 32px; width: 1034px; top: 338px;">01:00:00</div>
+                            <div id="pnl-set-timer" class="text-center" style="display: block; position: absolute; width: 1140px; top: 401px;">
+                                <button type="button" class="btn btn-space btn-classic btn-primary" style="" id="btn-edit">Change Timer</button>
+                                <button type="button" class="btn btn-space btn-classic btn-warning" style="" id="btn-reset">Reset</button>
+                                <button type="button" class="btn btn-space btn-classic btn-success" id="btn-resume">Start</button>
+                                <button type="button" class="btn btn-space btn-classic btn-danger" style="" id="btn-pause">Stop</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div id="timerTable" class="container">
+                            <h2 class="mt-4">Timer History</h2>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="editModal" class="modal fade" role="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-white">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Edit Timer</h4>
+                    </div>
+                    <audio id="timerSound"></audio>
+                    <div class="modal-body">
+                        <form id="editForm">
+                            <div class="form-group">
+                                <label for="editTitle">Title:</label>
+                                <input type="text" class="form-control" id="editTitle">
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="datePickerRadio" id="manualEntry" checked>
+                                <label class="form-check-label" for="manualEntry">Manual Entry</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="datePickerRadio" id="datePicker">
+                                <label class="form-check-label" for="datePicker">Use Date & Time Picker</label>
+                            </div>
+                            <div id="datePickerInput" style="display:none">
+                                <div class="form-group">
+                                    <label for="datetime">Date & Time:</label>
+                                    <input class="form-control"
+                                           type="text" id="datetime" />
+                                </div>
+                            </div>
+                            <div id="days-selector" class="form-group">
+                                <label for="editDays">Days:</label>
+                                <input type="number" class="form-control" id="editDays" placeholder="0" min="0">
+                            </div>
+                            <div id="hours-selector" class="form-group">
+                                <label for="editHours">Hours:</label>
+                                <input type="number" class="form-control" id="editHours" placeholder="0" min="0" max="23">
+                            </div>
+                            <div id="minutes-selector" class="form-group">
+                                <label for="editMinutes">Minutes:</label>
+                                <input type="number" class="form-control" id="editMinutes" placeholder="0" min="0" max="59">
+                            </div>
+                            <div id="seconds-selector" class="form-group">
+                                <label for="editSeconds">Seconds:</label>
+                                <input type="number" class="form-control" id="editSeconds" placeholder="0" min="0" max="59">
+                            </div>
+                            <div id="sound-selector" class="form-group">
+                                <label for="editMinutes">Sound:</label>
+                                <input class="form-control" type="file" id="soundFileInput" accept=".mp3, .wav">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="btn-close-modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="btn-submit">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="timerEndedModal" class="modal fade" role="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-white">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Timer Ended</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>The timer has ended.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="btn-close-result">Ok</button>
+                        <button type="button" class="btn btn-primary" id="btn-reset-timer">Restart</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="login-page" class="container hidden mt-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-4">
+                    <h2 class="mt-5 mb-3">Login</h2>
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    <div class="mb-3">
+                        <label for="LoginOrEmail" class="form-label">Login Or Email</label>
+                        <input type="text" id="LoginOrEmail" name="LoginOrEmail" class="form-control" asp-for="LoginOrEmail" required autofocus>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="Password" class="form-label">Password</label>
+                        <input type="password" id="Password" name="Password" class="form-control" asp-for="Password" required>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-primary" id="login-button">Login</button>
+                    </div>
+                    <div class="mb-3">
+                        <form method="post" action="api/Account/GoogleLogin">
+                            <div class="row">
+
+                                <button type="submit" class="btn btn-outline-dark text-light" role="button" style="text-transform:none">
+                                    <img width="20px" style="margin-bottom:3px; margin-right:5px" alt="Google sign-in" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png" />
+                                    Login with Google
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <p class="mb-0">New here?<a href="@Url.Action("Register")" class="btn btn-link"><i>Register</i></a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="register-page" class="container hidden mt-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-4">
+                    <h2 class="mt-5 mb-3">Register</h2>
+                    <form id="register-form" method="post">
+                        <div asp-validation-summary="All" class="text-danger"></div>
+                        <div class="mb-3">
+                            <label for="Login" class="form-label">Login</label>
+                            <input type="text" id="Login" name="Login" class="form-control" asp-for="Login" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Email" class="form-label">Email</label>
+                            <input type="email" id="Email" name="Email" class="form-control" asp-for="Email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Register-Password" class="form-label">Password</label>
+                            <input type="password" id="Register-Password" name="Password" class="form-control" asp-for="Password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ConfirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" asp-for="ConfirmPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-primary" id="register-button">Register</button>
+                        </div>
+                        <p class="mb-0">Have an account? <a class="btn btn-link" href="/Account/Login">Login</a></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
